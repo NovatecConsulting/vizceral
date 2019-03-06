@@ -15,9 +15,9 @@
  *     limitations under the License.
  *
  */
-import { each, maxBy } from 'lodash';
 import * as THREE from 'three';
 
+import _ from 'lodash';
 import BaseView from './baseView';
 import GlobalStyles from '../globalStyles';
 
@@ -52,50 +52,79 @@ function generateNoticeSVGs () {
       `
     ];
 
-    each(warningNoticeImages, (image, i) => {
+    _.each(warningNoticeImages, (image, i) => {
       image.src = `data:image/svg+xml;charset-utf-8,${encodeURIComponent(noticeIconSVG[i])}`;
     });
   }
 }
 
-class ConnectionNoticeView extends BaseView {
+class ConnectionStatsView extends BaseView {
   constructor (connectionView) {
     generateNoticeSVGs(); // Do this at first construct so we can use the passed in colors for the notices
     super(connectionView.object);
     this.connectionView = connectionView;
 
     this.severity = 1;
-    const noticeSize = this.connectionView.object.graphRenderer === 'global' ? 105 : 48;
 
     // Create the canvas to build a sprite
-    this.noticeCanvas = this.createCanvas(256, 256);
+    this.noticeCanvas = this.createCanvas(200, 200);
     this.noticeTexture = new THREE.Texture(this.noticeCanvas);
+    this.noticeTexture.minFilter = THREE.LinearFilter;
+
     this.updateNoticeIcon();
+
     this.material = new THREE.MeshBasicMaterial({ map: this.noticeTexture, side: THREE.DoubleSide, transparent: true });
-    this.addChildElement(new THREE.PlaneBufferGeometry(noticeSize, noticeSize), this.material);
+    this.addChildElement(new THREE.PlaneBufferGeometry(this.noticeCanvas.width, this.noticeCanvas.height), this.material);
 
     this.updatePosition();
   }
 
   updateNoticeIcon () {
-    const hasNotices = this.object.hasNotices();
-    if (hasNotices) {
-      let severity;
-      const maxNotice = maxBy(this.object.notices, notice => notice.severity);
-      if (maxNotice) {
-        ({ severity } = maxNotice);
-      }
-      if (severity === undefined) { severity = 0; }
+    //   debugger;
+    const requestCount = _.defaultTo(this.object.volume.normal, -1) + _.defaultTo(this.object.volume.danger, 0);
+    const connectionTime = Math.floor(_.defaultTo(this.object.metadata.connectionTime, -1));
+    const errors = _.defaultTo(this.object.volume.danger, -1);
+    const textParts = [];
 
-      const noticeImage = warningNoticeImages[severity];
-      const context = this.noticeCanvas.getContext('2d');
-      context.clearRect(0, 0, this.noticeCanvas.width, this.noticeCanvas.height);
-
-      // notice icon
-      const offset = { x: (this.noticeCanvas.width - noticeImage.width) / 2, y: (this.noticeCanvas.height - noticeImage.height) / 2 };
-      context.drawImage(noticeImage, offset.x, offset.y);
-      this.noticeTexture.needsUpdate = true;
+    if (connectionTime >= 0) {
+      textParts.push(`${connectionTime} ms`);
     }
+    if (requestCount >= 0) {
+      textParts.push(`${requestCount} Reqeusts`);
+    }
+    if (errors >= 0) {
+      textParts.push(`${errors} Errors`);
+    }
+
+    const statsText = _.join(textParts, ', ');
+
+    const context = this.noticeCanvas.getContext('2d');
+    context.scale(2, 2);
+    const fontSize = 18;
+
+    const font = `${fontSize}px 'Source Sans Pro', sans-serif`;
+    context.font = font;
+
+    this.defaultLabelWidth = context.measureText(statsText).width + 16;
+    const labelWidth = context.measureText(statsText).width + 16;
+    if (labelWidth !== this.labelWidth) {
+      this.labelWidth = labelWidth;
+    }
+    this.resizeCanvas(this.noticeCanvas, this.labelWidth, fontSize + 10);
+
+    //
+
+    context.clearRect(0, 0, this.noticeCanvas.width, this.noticeCanvas.height);
+
+    context.fillStyle = GlobalStyles.styles.colorBackgroundDark;
+    context.fillStyle = GlobalStyles.styles.colorTraffic.normal;
+    context.fillRect(0, 0, this.noticeCanvas.width, this.noticeCanvas.height);
+
+    context.textAlign = 'center';
+    context.fillStyle = GlobalStyles.styles.colorLabelText;
+    context.fillText(statsText, this.noticeCanvas.width / 2, this.noticeCanvas.height / 2);
+
+    this.noticeTexture.needsUpdate = true;
   }
 
   updatePosition () {
@@ -122,4 +151,4 @@ class ConnectionNoticeView extends BaseView {
   }
 }
 
-export default ConnectionNoticeView;
+export default ConnectionStatsView;

@@ -107,8 +107,9 @@ class MoveNodeInteraction {
       const o = this.vizceral.raycaster.ray.origin;
       const dx = o.x - this._lastMBPress_mouseLocInGraphSpace.x;
       const dy = o.y - this._lastMBPress_mouseLocInGraphSpace.y;
-      const newX = this._lastMBPress_pressedObj_pos.x + dx;
-      const newY = this._lastMBPress_pressedObj_pos.y + dy;
+      const newX = this._lastMBPress_pressedObj_pos.x + dx / this.vizceral.zoom; // considering to the zoom level
+      const newY = this._lastMBPress_pressedObj_pos.y + dy / this.vizceral.zoom;
+
       this._setDraggableObjectPosition(this._lastMBPress_pressedObj, newX, newY);
     }
   }

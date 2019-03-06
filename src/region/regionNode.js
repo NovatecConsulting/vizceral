@@ -18,6 +18,7 @@
 import FocusedNodeView from '../focused/focusedNodeView';
 import Node from '../base/node';
 import NodeViewStandard from '../base/nodeViewStandard';
+import NodeSymbolView from '../base/nodeSymbolView';
 
 class RegionNode extends Node {
   constructor (node) {
@@ -38,6 +39,9 @@ class RegionNode extends Node {
     // Set the default view renderer
     if (this.nodeView === 'focused') {
       this.view = new FocusedNodeView(this);
+    } else if (this.nodeView === 'symbol') {
+      // this.view = new NodeViewStandard(this);
+      this.view = new NodeSymbolView(this);
     } else {
       this.view = new NodeViewStandard(this);
     }

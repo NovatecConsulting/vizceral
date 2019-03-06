@@ -42,6 +42,25 @@ function longestPathRanking (graph) {
   each(graph.entryNodes(), dfs);
 }
 
+function pullUpLeaves (graph) {
+  const visited = {};
+
+  each(graph.nodes, (node) => {
+    each(graph.outgoingEdges(node.name), (edge) => {
+      const n = graph.getNode(edge.target);
+      if (has(visited, n.name)) {
+        return;
+      }
+
+      visited[n.name] = true;
+
+      if (graph.outgoingEdges(n.name).length <= 0) {
+        n.rank = node.rank + 1;
+      }
+    });
+  });
+}
+
 function normalizeRanks (graph) {
   let i;
   let lowestRank = Infinity;
@@ -89,5 +108,6 @@ module.exports = {
   longestPathRanking: longestPathRanking,
   normalizeRanks: normalizeRanks,
   forcePrimaryRankPromotions: forcePrimaryRankPromotions,
-  forceSecondaryRankPromotions: forceSecondaryRankPromotions
+  forceSecondaryRankPromotions: forceSecondaryRankPromotions,
+  pullUpLeaves: pullUpLeaves
 };

@@ -21,6 +21,7 @@ import * as THREE from 'three';
 import BaseView from './baseView';
 import GlobalStyles from '../globalStyles';
 import Constants from './constants';
+import NodeStatsView from './nodeStatsView';
 
 const curveSegments = 32;
 
@@ -51,6 +52,8 @@ class NodeView extends BaseView {
     this.borderColor = GlobalStyles.getColorTrafficRGBA(node.getClass());
     this.borderMaterial = new THREE.MeshBasicMaterial({ color: new THREE.Color(this.borderColor.r, this.borderColor.g, this.borderColor.b), transparent: true, opacity: this.borderColor.a });
     this.innerCircleMaterial = new THREE.MeshBasicMaterial({ color: this.donutInternalColorThree, transparent: true });
+
+    this.statsView = new NodeStatsView(this, false);
   }
 
   setOpacity (opacity) {
@@ -59,11 +62,17 @@ class NodeView extends BaseView {
     // Fade the inner node color to background color since setting opacity will show the particles hiding behind the node.
     if (!this.highlight) {
       this.innerCircleMaterial.color.setStyle(chroma.mix(GlobalStyles.styles.colorPageBackground, GlobalStyles.styles.colorDonutInternalColor, opacity).css());
-      this.meshes.innerCircle.geometry.colorsNeedUpdate = true;
+      if (this.meshes.innerCircle) {
+        this.meshes.innerCircle.geometry.colorsNeedUpdate = true;
+      }
     }
 
     if (this.nameView) {
       this.nameView.setOpacity(opacity);
+    }
+
+    if (this.statsView) {
+      this.statsView.setOpacity(opacity);
     }
   }
 
@@ -81,6 +90,9 @@ class NodeView extends BaseView {
       if (this.nameView) {
         this.nameView.setHighlight(highlight);
       }
+      if (this.statsView) {
+        this.statsView.setHighlight(highlight);
+      }
       this.refresh(true);
       this.updatePosition();
     }
@@ -90,6 +102,9 @@ class NodeView extends BaseView {
   refreshFocused () {
     if (this.nameView) {
       this.nameView.refresh();
+    }
+    if (this.statsView) {
+      this.statsView.refresh();
     }
   }
 
@@ -119,6 +134,9 @@ class NodeView extends BaseView {
         this.nameView.refresh();
       }
     }
+    if (this.statsView) {
+      this.statsView.refresh();
+    }
   }
 
   update () {
@@ -143,6 +161,10 @@ class NodeView extends BaseView {
     if (this.nameView) {
       this._showLabel(this.labelDefaultVisible || this.forceLabel || this.object.forceLabel);
       this.nameView.updatePosition();
+    }
+    if (this.statsView) {
+      this._showLabel(this.labelDefaultVisible || this.forceLabel || this.object.forceLabel);
+      this.statsView.updatePosition();
     }
   }
 
@@ -170,10 +192,17 @@ class NodeView extends BaseView {
     if (this.nameView) {
       this.nameView.applyPosition();
     }
+    if (this.statsView) {
+      this.statsView.applyPosition();
+    }
   }
 
   showLabel (show) {
     if (this.nameView && this.labelDefaultVisible !== show) {
+      this.labelDefaultVisible = show;
+      this._showLabel(show);
+    }
+    if (this.statsView && this.labelDefaultVisible !== show) {
       this.labelDefaultVisible = show;
       this._showLabel(show);
     }
@@ -191,6 +220,17 @@ class NodeView extends BaseView {
         this.container.remove(this.nameView.container);
       }
     }
+
+    if (this.statsView) {
+      // stats view is not interactive
+      if (show) {
+        this.labelVisible = true;
+        this.container.add(this.statsView.container);
+      } else {
+        this.labelVisible = false;
+        this.container.remove(this.statsView.container);
+      }
+    }
   }
 
   getLabelScreenDimensions () {
@@ -202,10 +242,14 @@ class NodeView extends BaseView {
     if (this.nameView) {
       this.nameView.screenDimensions = dimensions;
     }
+    if (this.statsView) {
+      this.statsView.screenDimensions = dimensions;
+    }
   }
 
   cleanup () {
     if (this.nameView) { this.nameView.cleanup(); }
+    if (this.statsView) { this.statsView.cleanup(); }
     this.borderMaterial.dispose();
     this.innerCircleMaterial.dispose();
   }

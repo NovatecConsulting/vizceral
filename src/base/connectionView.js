@@ -19,6 +19,7 @@ import * as THREE from 'three';
 
 import BaseView from './baseView';
 import ConnectionNoticeView from './connectionNoticeView';
+import ConnectionStatsView from './connectionStatsView';
 import GlobalStyles from '../globalStyles';
 import Constants from './constants';
 
@@ -29,7 +30,9 @@ const loader = new THREE.TextureLoader();
 const particle = require('url-loader!./particleD.png'); // eslint-disable-line import/no-extraneous-dependencies
 
 let particleTexture;
-loader.load(particle, (texture) => { particleTexture = texture; });
+loader.load(particle, (texture) => {
+  particleTexture = texture;
+});
 
 const trafficFragmentShader = `
 uniform vec3 color;
@@ -208,10 +211,23 @@ class ConnectionView extends BaseView {
     this.particleSystemSize = this.maxParticleReleasedPerTick;
 
     this.uniforms = {
-      amplitude: { type: 'f', value: 1.0 },
-      color: { type: 'c', value: new THREE.Color(0xFFFFFF) },
-      opacity: { type: 'f', value: 1.0 },
-      texture: { type: 't', value: particleTexture, transparent: true }
+      amplitude: {
+        type: 'f',
+        value: 1.0
+      },
+      color: {
+        type: 'c',
+        value: new THREE.Color(0xFFFFFF)
+      },
+      opacity: {
+        type: 'f',
+        value: 1.0
+      },
+      texture: {
+        type: 't',
+        value: particleTexture,
+        transparent: true
+      }
     };
 
     this.shaderMaterial = baseShaderMaterial.clone();
@@ -251,6 +267,10 @@ class ConnectionView extends BaseView {
     this.noticeView = new ConnectionNoticeView(this);
     this.validateNotices();
 
+    if (connection.metadata.showStats) {
+      this.statsView = new ConnectionStatsView(this);
+      this.validateStats();
+    }
 
     this.updateVolume();
   }
@@ -318,6 +338,10 @@ class ConnectionView extends BaseView {
     if (this.object.hasNotices()) {
       this.noticeView.setOpacity(opacity);
     }
+
+    if (this.statsView) {
+      this.statsView.setOpacity(opacity);
+    }
   }
 
   setHighlight (highlight) {
@@ -360,6 +384,10 @@ class ConnectionView extends BaseView {
     if (this.noticeView) {
       this.noticeView.updatePosition();
     }
+
+    if (this.statsView) {
+      this.statsView.updatePosition();
+    }
   }
 
   validateNotices () {
@@ -370,6 +398,14 @@ class ConnectionView extends BaseView {
     } else {
       this.removeInteractiveChildren(this.noticeView.getInteractiveChildren());
       this.container.remove(this.noticeView.container);
+    }
+  }
+
+  validateStats () {
+    if (this.statsView) {
+      this.statsView.updateNoticeIcon();
+      this.addInteractiveChildren(this.statsView.getInteractiveChildren());
+      this.container.add(this.statsView.container);
     }
   }
 
@@ -434,7 +470,9 @@ class ConnectionView extends BaseView {
     let j;
 
     // We need the highest RPS connection to make this volume relative against
-    if (!this.object.volumeGreatest && this.object.volumeGreatest !== 0) { return; }
+    if (!this.object.volumeGreatest && this.object.volumeGreatest !== 0) {
+      return;
+    }
 
     // for each volume, calculate the amount of particles to release:
     for (i = 0; i < this.releasesPerTick.length; i++) {
@@ -475,6 +513,7 @@ class ConnectionView extends BaseView {
 
   refresh () {
     this.validateNotices();
+    this.validateStats();
   }
 
   setParticleColor (index, color) {

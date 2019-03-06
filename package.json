@@ -41,6 +41,8 @@
   },
   "dependencies": {
     "chroma-js": "^1.1.1",
+    "cytoscape": "^3.4.2",
+    "cytoscape-cose-bilkent": "^4.0.0",
     "hammerjs": "^2.0.8",
     "lodash": "^4.12.0",
     "numeral": "^1.5.3",

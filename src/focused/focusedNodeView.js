@@ -81,6 +81,8 @@ class FocusedNodeView extends NodeView {
     this.metricSpacing = this.canvasHeight * 0.1;
     this.headerFontSize = (this.canvasHeight - this.metricSpacing) * 0.2;
     this.metricFontSize = (this.canvasHeight - this.metricSpacing) * 0.3;
+    this.singleHeaderFontSize = (this.canvasHeight - this.metricSpacing) * 0.3;
+    this.singleMetricFontSize = (this.canvasHeight - this.metricSpacing) * 0.8;
     this.addText();
 
     if (!this.object.loaded) {
@@ -128,6 +130,14 @@ class FocusedNodeView extends NodeView {
     if (this.loaded) {
       let topData;
       let bottomData;
+      let centerData;
+
+      if (this.object.metadata) {
+        if (this.object.metadata.centerData && this.object.metadata.centerData.value && this.object.metadata.centerData.text) {
+          ({ centerData } = this.object.metadata);
+        }
+      }
+
       // Get which text to draw
       if (!this.object.context) {
         // get the default top/bottom
@@ -182,6 +192,20 @@ class FocusedNodeView extends NodeView {
         textContext.fillText(bottomMetricDisplayValue, this.textCanvas.width / 2, top);
       }
       top += (this.metricFontSize / 2);
+
+      // Draw single center metric - only if no other exists
+      if (!topData && !bottomData && centerData) {
+        top = this.singleMetricFontSize / 2; // reset
+        textContext.fillStyle = GlobalStyles.styles.colorTraffic.normal;
+        textContext.font = `${metricWeight} ${this.singleMetricFontSize}px 'Source Sans Pro', sans-serif`;
+        textContext.fillText(centerData.value, this.textCanvas.width / 2, top);
+
+        top += this.singleMetricFontSize / 2 + this.singleHeaderFontSize / 2;
+
+        textContext.fillStyle = GlobalStyles.styles.colorNormalDimmed;
+        textContext.font = `${headerWeight} ${this.singleHeaderFontSize}px 'Source Sans Pro', sans-serif`;
+        textContext.fillText(centerData.text, this.textCanvas.width / 2, top);
+      }
     } else {
       // The node is still loading so show a loading message
       textContext.fillStyle = GlobalStyles.styles.colorTraffic.normal;

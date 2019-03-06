@@ -43,7 +43,7 @@ class GlobalStyles {
         danger: 'rgb(184, 36, 36)'
       },
       colorNormalDimmed: 'rgb(101, 117, 128)',
-      colorBackgroundDark: 'rgb(35, 35, 35)',
+      colorBackgroundDark: 'rgb(33, 33, 36)',
       colorLabelBorder: 'rgb(16, 17, 18)',
       colorLabelText: 'rgb(0, 0, 0)',
       colorDonutInternalColor: 'rgb(35, 35, 35)',
@@ -101,6 +101,7 @@ class GlobalStyles {
     }, {});
 
     this.rgba = {
+      colorBackgroundDark: getRGBA(this.styles.colorBackgroundDark),
       colorArcBackground: getRGBA(this.styles.colorArcBackground),
       colorConnectionLine: getRGBA(this.styles.colorConnectionLine),
       colorDonutInternalColor: getRGBA(this.styles.colorDonutInternalColor),

@@ -23,6 +23,7 @@ import * as THREE from 'three';
 import TWEEN from 'tween.js';
 import Hammer from 'hammerjs';
 
+import CytoscapeLayout from './layouts/cytoscapeLayout';
 import DNSLayout from './layouts/dnsLayout';
 import DnsTrafficGraph from './dns/dnsTrafficGraph';
 import FocusedChildTrafficGraph from './focused/focusedChildTrafficGraph';
@@ -93,6 +94,8 @@ class Vizceral extends EventEmitter {
    */
   constructor (canvas, targetFramerate) {
     super();
+    const that = this;
+
     const parameters = { alpha: true, antialias: true };
     if (canvas) { parameters.canvas = canvas; }
 
@@ -132,7 +135,40 @@ class Vizceral extends EventEmitter {
     this.raycaster = new THREE.Raycaster();
     if (window) {
       window.addEventListener('scroll', () => this.updateBoundingRectCache());
+      window.addEventListener('wheel', (e) => {
+        if (that.shiftPressed) {
+          const delta = e.deltaY / 100;
+
+          const step = 0.05;
+          const zoomTo = Math.max(Math.min(that.zoom + step * delta, 2), 0.1);
+
+          that.setZoom(zoomTo);
+        }
+      });
     }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.keyCode === 16) {
+        that.shiftPressed = true;
+      }
+    }, false);
+    document.addEventListener('keyup', (e) => {
+      if (e.keyCode === 16) {
+        that.shiftPressed = false;
+      }
+    }, false);
+
+    this._dragStart = this.dragStart.bind(this);
+    this._dragEnd = this.dragEnd.bind(this);
+    this._drag = this.drag.bind(this);
+
+    canvas.addEventListener('touchstart', this._dragStart, false);
+    canvas.addEventListener('touchend', this._dragEnd, false);
+    canvas.addEventListener('touchmove', this._drag, false);
+
+    canvas.addEventListener('mousedown', this._dragStart, false);
+    canvas.addEventListener('mouseup', this._dragEnd, false);
+    canvas.addEventListener('mousemove', this._drag, false);
 
     this.hammertime = new Hammer.Manager(this.renderer.domElement);
     this.hammertime.on('press', event => this.onDocumentMouseMove(event), false);
@@ -152,6 +188,13 @@ class Vizceral extends EventEmitter {
     };
     this.filters = {};
 
+    this.zoom = 1;
+    this.dragging = {
+      xOffset: 0,
+      yOffset: 0,
+      active: false
+    };
+
     this.renderers = {
       global: GlobalTrafficGraph,
       region: RegionTrafficGraph,
@@ -164,11 +207,52 @@ class Vizceral extends EventEmitter {
       ltrTree: LTRTreeLayout,
       dns: DNSLayout,
       ringCenter: RingCenterLayout,
-      ring: RingLayout
+      ring: RingLayout,
+      cytoscape: CytoscapeLayout
     };
     this.moveNodeInteraction.setEnabled(this.options.allowDraggingOfNodes);
   }
 
+  dragStart (e) {
+    if (e.type === 'touchstart') {
+      this.dragging.initialX = e.touches[0].clientX - this.dragging.xOffset;
+      this.dragging.initialY = e.touches[0].clientY - this.dragging.yOffset;
+    } else {
+      this.dragging.initialX = e.clientX - this.dragging.xOffset;
+      this.dragging.initialY = e.clientY - this.dragging.yOffset;
+    }
+
+    this.dragging.active = true;
+  }
+
+  dragEnd () {
+    this.dragging.initialX = this.dragging.currentX;
+    this.dragging.initialY = this.dragging.currentY;
+    this.dragging.active = false;
+  }
+
+  drag (e) {
+    const { _state } = this.moveNodeInteraction;
+    if (this.dragging.active && _state !== 2) {
+      e.preventDefault();
+
+      if (e.type === 'touchmove') {
+        this.dragging.currentX = e.touches[0].clientX - this.dragging.initialX;
+        this.dragging.currentY = e.touches[0].clientY - this.dragging.initialY;
+      } else {
+        this.dragging.currentX = e.clientX - this.dragging.initialX;
+        this.dragging.currentY = e.clientY - this.dragging.initialY;
+      }
+
+      this.dragging.xOffset = this.dragging.currentX;
+      this.dragging.yOffset = this.dragging.currentY;
+
+      // workaround
+      const scale = 0.65;
+
+      this.getGraph().view.container.position.set(this.dragging.currentX / scale, -this.dragging.currentY / scale, 1);
+    }
+  }
 
   /**
    * Get an array of all possible defined styles
@@ -567,6 +651,45 @@ class Vizceral extends EventEmitter {
     this.currentGraph.setCurrent(true);
 
     this.emit('viewChanged', { view: this.currentGraph.graphIndex, graph: this.currentGraph, redirectedFrom: redirectedFrom });
+  }
+
+  setZoom (zoomLevel) {
+    const parametersFrom = {
+      zoom: this.zoom
+    };
+    const parametersTo = {
+      zoom: zoomLevel
+    };
+
+    this.zoom = zoomLevel;
+
+    const viewObject = this.getGraph().view.container;
+
+    // Pan over and zoom in to the selected node
+    new TWEEN.Tween(clone(parametersFrom))
+      .to(parametersTo, 1000)
+      .easing(TWEEN.Easing.Cubic.Out)
+      .onUpdate(function () {
+        // debugger;
+        // // Pan over to the selected node
+        // fromViewObject.position.set(this.exitingX, this.exitingY, 0);
+        // toViewObject.position.set(this.enteringX, this.enteringY, 0);
+        // Zoom in to the selected entering
+        // fromViewObject.scale.set(this.exitingScale, this.exitingScale, 1);
+        viewObject.scale.set(this.zoom, this.zoom, 1);
+        // // Fade the node node
+        // fromGraph.view.setOpacity(this.fromGraphOpacity);
+        // if (toGraph.loadedOnce) {
+        //   toGraph.view.setOpacity(this.toGraphOpacity);
+        // }
+      })
+      .onComplete(() => {
+        // // Remove the outgoing graph from the scene
+        // if (fromViewObject !== undefined) {
+        //   this.scene.remove(fromViewObject);
+        // }
+      })
+      .start();
   }
 
   // Only necessary when global graph is present

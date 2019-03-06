@@ -124,8 +124,13 @@ const weightSort = function (a, b) {
 
       Ranker.normalizeRanks(graph); // Normalize node ranks to be 0++
       if (!options.noRankPromotion) {
+        // TODO: data = modify size! no rank promo
         Ranker.forcePrimaryRankPromotions(graph, data.entryNode); // Force all entry nodes to be first
         Ranker.forceSecondaryRankPromotions(graph, data.entryNode); // Force any leafs that are one level deep from specified entry node to not move all the way to the edge
+      }
+
+      if (options.pullUpLeaves) {
+        Ranker.pullUpLeaves(graph);
       }
 
       const nodesSortedByDepth = sortNodesByDepth(graph);

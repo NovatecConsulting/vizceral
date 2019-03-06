@@ -17,38 +17,11 @@
  */
 import * as THREE from 'three';
 
+import _ from 'lodash';
 import BaseView from './baseView';
 import GlobalStyles from '../globalStyles';
 
-function roundRect (context, x, y, w, h, radius, strokeColor, fillColor) {
-  const r = x + w;
-  const b = y + h;
-  context.beginPath();
-  context.strokeStyle = strokeColor;
-  context.lineWidth = 2;
-  context.moveTo(x + radius, y);
-  context.lineTo(r - radius, y);
-  context.quadraticCurveTo(r, y, r, y + radius);
-  context.lineTo(r, (y + h) - radius);
-  context.quadraticCurveTo(r, b, r - radius, b);
-  context.lineTo(x + radius, b);
-  context.quadraticCurveTo(x, b, x, b - radius);
-  context.lineTo(x, y + radius);
-  context.quadraticCurveTo(x, y, x + radius, y);
-  context.fillStyle = fillColor;
-  context.closePath();
-  context.fill();
-  context.stroke();
-}
-
-function truncate (name) {
-  if (name.length > 18) {
-    return `${name.substr(0, 7)}…${name.substr(-7)}`;
-  }
-  return name;
-}
-
-class NodeNameView extends BaseView {
+class NodeStatsView extends BaseView {
   constructor (nodeView, fixedWidth) {
     super(nodeView.object);
     this.fixedWidth = fixedWidth;
@@ -56,11 +29,10 @@ class NodeNameView extends BaseView {
     this.nodeView = nodeView;
 
     // How far away from the node we want the label to begin
-    this.buffer = Math.max(this.nodeView.radius * 0.3, 15);
-
+    this.buffer = Math.max(this.nodeView.radius * 0.3, 7);
 
     // Create the canvas to build a sprite
-    this.nameCanvas = this.createCanvas(200, this.fontSize + 10);
+    this.nameCanvas = this.createCanvas(200, this.fontSize * 3 + 10);
 
     this.nameTexture = new THREE.Texture(this.nameCanvas);
     this.nameTexture.minFilter = THREE.LinearFilter;
@@ -71,39 +43,81 @@ class NodeNameView extends BaseView {
     this.view = this.addChildElement(new THREE.PlaneBufferGeometry(this.nameCanvas.width, this.nameCanvas.height), this.material);
   }
 
-  getDisplayName (getDefault) {
-    const getDefaultDisplayName = () => truncate(this.nodeName);
-    if (getDefault) { return getDefaultDisplayName(); }
-
-    const showFullDisplayName = this.highlight || this.nodeView.focused;
-    return showFullDisplayName ? this.nodeName : getDefaultDisplayName();
-  }
-
   updateLabel () {
+    const textLines = [];
+    let requestCount;
+    let errorCount;
+    let responseTime;
+
+    if (this.object.metrics) {
+      requestCount = _.defaultTo(this.object.metrics.requestCount, -1);
+      errorCount = _.defaultTo(this.object.metrics.errorCount, -1);
+      responseTime = _.defaultTo(this.object.metrics.responseTime, -1);
+    }
+
+    if (requestCount >= 0) {
+      let requestCountTotal = requestCount;
+      if (errorCount >= 0) {
+        requestCountTotal += errorCount;
+      }
+      textLines.push(`Requests: ${requestCountTotal}`);
+    }
+    if (errorCount >= 0) {
+      textLines.push(`Errors: ${errorCount}`);
+    }
+    if (responseTime >= 0) {
+      textLines.push(`Avg. Resp. Time: ${Math.floor(responseTime)} ms`);
+    }
+
+    let showParent = false;
+
+    if (_.has(this.object, 'metadata.componentMapping') && this.object.metadata.componentMapping.length > 0) {
+      const meta = this.object.metadata;
+
+      if (meta.aggregation === 'service') {
+        textLines.splice(0, 0, meta.componentMapping[0].app);
+        showParent = true;
+      } else if (meta.aggregation === 'node') {
+        textLines.splice(0, 0, `${meta.componentMapping[0].app}[${meta.componentMapping[0].service}]`);
+        showParent = true;
+      }
+    }
+
     const context = this.nameCanvas.getContext('2d');
-    const fontSize = this.fixedWidth ? 22 : 18;
+    const fontSize = 18;
+    const spacing = fontSize / 4;
 
     const font = `${fontSize}px 'Source Sans Pro', sans-serif`;
     context.font = font;
 
     // Label Width
-    this.defaultLabelWidth = this.fixedWidth ? 260 : context.measureText(this.getDisplayName(true)).width + 16;
-    const labelWidth = this.fixedWidth ? 260 : context.measureText(this.getDisplayName()).width + 16;
-    if (labelWidth !== this.labelWidth) { this.labelWidth = labelWidth; }
-    this.resizeCanvas(this.nameCanvas, this.labelWidth, fontSize + 10);
+    const labelWidths = _.map(textLines, text => context.measureText(text).width);
+    const maxWidth = _.max(labelWidths);
 
-    // label color
-    const labelColor = GlobalStyles.getColorTraffic(this.object.getClass(), this.highlight);
-    roundRect(context, 0, 0, this.nameCanvas.width, this.nameCanvas.height, 3, GlobalStyles.styles.colorLabelBorder, labelColor);
-    context.fillStyle = GlobalStyles.styles.colorLabelText;
+    // const labelWidth = context.measureText(text3).width;
+    if (maxWidth !== this.labelWidth) { this.labelWidth = maxWidth; }
+    this.resizeCanvas(this.nameCanvas, this.labelWidth, fontSize * textLines.length + spacing * (textLines.length - 1));
 
-    context.fillText(this.getDisplayName(), this.nameCanvas.width / 2, this.nameCanvas.height / 2);
+    _.each(textLines, (text, idx) => {
+      context.fillStyle = GlobalStyles.styles.colorBackgroundDark;
+      context.textAlign = 'left';
+      context.fillRect(0, fontSize * idx + spacing * idx, labelWidths[idx], fontSize);
+
+      if (idx === 0 && showParent) {
+        context.fillStyle = GlobalStyles.styles.colorTraffic.warning;
+      } else {
+        context.fillStyle = GlobalStyles.styles.colorTraffic.normal;
+      }
+
+      // y = (offset because the font is centered) + (offset for each row) + (spacing)
+      context.fillText(textLines[idx], 0, fontSize / 2 + fontSize * idx + spacing * idx);
+    });
 
     this.nameTexture.needsUpdate = true;
 
     if (this.view) {
       this.applyPosition();
-      this.view.scale.x = this.labelWidth / this.defaultLabelWidth;
+      this.view.scale.x = 1;
       this.view.geometry.width = this.nameCanvas.width;
       this.view.geometry.height = this.nameCanvas.height;
       this.view.geometry.needsUpdate = true;
@@ -127,22 +141,9 @@ class NodeNameView extends BaseView {
   }
 
   applyPosition () {
-    const fontSize = 18;
-
-    let x;
-    let y = this.nodeView.object.graphRenderer === 'global' ? 80 : 0;
-
-    // Prioritize left side if node is left of center, right side if node is right of center
-    if (this.nodeView.labelPositionLeft) {
-      // Put the label to the left of the node
-      x = 0 - this.nodeView.radius - (this.labelWidth / 2) - this.buffer;
-    } else {
-      // Put the label to the right of the node
-      x = this.nodeView.radius + (this.labelWidth / 2) + this.buffer;
-    }
-
-    x = 0;
-    y = -(this.nodeView.radius + this.buffer + fontSize / 2);
+    const spacing = 12;
+    const x = this.nodeView.radius + (this.labelWidth / 2) + spacing;
+    const y = 0;
 
     this.container.position.set(x, y, 1);
   }
@@ -166,4 +167,4 @@ class NodeNameView extends BaseView {
   }
 }
 
-export default NodeNameView;
+export default NodeStatsView;

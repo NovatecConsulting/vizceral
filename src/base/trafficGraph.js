@@ -61,6 +61,8 @@ class TrafficGraph extends EventEmitter {
     this.ConnectionClass = ConnectionClass;
     this.volume = { max: 0, current: 0 };
 
+    this.layoutOptions = mainView.trafficData.layoutOptions;
+
     this.layout = new Layout();
 
     if (parentGraph) {
