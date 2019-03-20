@@ -1,6 +1,8 @@
 import cytoscape from 'cytoscape';
 import coseBilkent from 'cytoscape-cose-bilkent';
-import { map, max, concat, each } from 'lodash';
+import {
+  map, max, concat, each
+} from 'lodash';
 
 cytoscape.use(coseBilkent);
 

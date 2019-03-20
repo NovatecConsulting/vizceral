@@ -50,9 +50,9 @@ class NodeStatsView extends BaseView {
     let responseTime;
 
     if (this.object.metrics) {
-      requestCount = _.defaultTo(this.object.metrics.requestCount, -1);
-      errorCount = _.defaultTo(this.object.metrics.errorCount, -1);
-      responseTime = _.defaultTo(this.object.metrics.responseTime, -1);
+      requestCount = Math.round(_.defaultTo(this.object.metrics.requestCount, -1));
+      errorCount = Math.round(_.defaultTo(this.object.metrics.errorCount, -1));
+      responseTime = Math.floor(_.defaultTo(this.object.metrics.responseTime, -1));
     }
 
     if (requestCount >= 0) {

@@ -94,7 +94,6 @@ class Vizceral extends EventEmitter {
    */
   constructor (canvas, targetFramerate) {
     super();
-    const that = this;
 
     const parameters = { alpha: true, antialias: true };
     if (canvas) { parameters.canvas = canvas; }
@@ -130,33 +129,12 @@ class Vizceral extends EventEmitter {
     // Setup lighting
     this.scene.add(new THREE.AmbientLight(0xffffff));
 
-    // Mouse/Touch interactivity
+    // // Mouse/Touch interactivity
     this.raycaster_mouseLocation_viewportSpace = new THREE.Vector2(-1, -1);
     this.raycaster = new THREE.Raycaster();
     if (window) {
       window.addEventListener('scroll', () => this.updateBoundingRectCache());
-      window.addEventListener('wheel', (e) => {
-        if (that.shiftPressed) {
-          const delta = e.deltaY / 100;
-
-          const step = 0.05;
-          const zoomTo = Math.max(Math.min(that.zoom + step * delta, 2), 0.1);
-
-          that.setZoom(zoomTo);
-        }
-      });
     }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.keyCode === 16) {
-        that.shiftPressed = true;
-      }
-    }, false);
-    document.addEventListener('keyup', (e) => {
-      if (e.keyCode === 16) {
-        that.shiftPressed = false;
-      }
-    }, false);
 
     this._dragStart = this.dragStart.bind(this);
     this._dragEnd = this.dragEnd.bind(this);
@@ -670,24 +648,7 @@ class Vizceral extends EventEmitter {
       .to(parametersTo, 1000)
       .easing(TWEEN.Easing.Cubic.Out)
       .onUpdate(function () {
-        // debugger;
-        // // Pan over to the selected node
-        // fromViewObject.position.set(this.exitingX, this.exitingY, 0);
-        // toViewObject.position.set(this.enteringX, this.enteringY, 0);
-        // Zoom in to the selected entering
-        // fromViewObject.scale.set(this.exitingScale, this.exitingScale, 1);
         viewObject.scale.set(this.zoom, this.zoom, 1);
-        // // Fade the node node
-        // fromGraph.view.setOpacity(this.fromGraphOpacity);
-        // if (toGraph.loadedOnce) {
-        //   toGraph.view.setOpacity(this.toGraphOpacity);
-        // }
-      })
-      .onComplete(() => {
-        // // Remove the outgoing graph from the scene
-        // if (fromViewObject !== undefined) {
-        //   this.scene.remove(fromViewObject);
-        // }
       })
       .start();
   }
