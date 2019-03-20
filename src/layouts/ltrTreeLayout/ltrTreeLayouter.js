@@ -135,6 +135,11 @@ const weightSort = function (a, b) {
 
       const nodesSortedByDepth = sortNodesByDepth(graph);
       sortNodesWithinDepth(nodesSortedByDepth);
+
+      if (options.adjustWidthToRanks) {
+        data.dimensions.width = nodesSortedByDepth.length * 350;
+      }
+
       const nodePositions = positionNodes(nodesSortedByDepth, data.dimensions);
       return nodePositions;
     };

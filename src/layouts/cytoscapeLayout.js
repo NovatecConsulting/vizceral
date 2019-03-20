@@ -1,19 +1,19 @@
 import cytoscape from 'cytoscape';
 import coseBilkent from 'cytoscape-cose-bilkent';
-import _ from 'lodash';
+import { map, max, concat, each } from 'lodash';
 
 cytoscape.use(coseBilkent);
 
 class CytoscapeLayout {
   run (graph, dimensions, layoutComplete) {
-    const nodes = _.map(graph.nodes, n => ({
+    const nodes = map(graph.nodes, n => ({
       data: {
         id: n.name,
         node: n
       }
     }));
 
-    const connections = _.map(graph.connections, c => ({
+    const connections = map(graph.connections, c => ({
       data: {
         id: c.name,
         source: c.source.name,
@@ -21,11 +21,10 @@ class CytoscapeLayout {
       }
     }));
 
-    const elements = _.concat(nodes, connections);
+    const elements = concat(nodes, connections);
 
     const cy = cytoscape({
       headless: true,
-
       elements: elements
     });
 
@@ -34,7 +33,7 @@ class CytoscapeLayout {
 
       // Called on `layoutready`
       ready: function () {
-        _.each(this.cy().nodes(), (n) => {
+        each(this.cy().nodes(), (n) => {
           const originNode = n.data().node;
           originNode.updatePosition({
             x: n.position().x, //* 25 * 5 - 500,
@@ -131,11 +130,17 @@ class CytoscapeLayout {
       name: 'cose-bilkent',
       // Called on `layoutready`
       ready: function () {
-        _.each(this.cy.nodes(), (n) => {
+        // align on center (0,0)
+        const xDelta = max(map(this.cy.nodes(), n => n.position().x)) / 2;
+        const yDelta = max(map(this.cy.nodes(), n => n.position().y)) / 2;
+
+        const scale = 8;
+
+        each(this.cy.nodes(), (n) => {
           const originNode = n.data().node;
           originNode.updatePosition({
-            x: n.position().x * 8, // * 5 - 500,
-            y: n.position().y * 8 // * 5 - 500
+            x: (n.position().x - xDelta) * scale,
+            y: (n.position().y - yDelta) * scale
           });
 
           layoutComplete();
@@ -187,41 +192,6 @@ class CytoscapeLayout {
     const layout = cy.layout(options);
 
     layout.run();
-    // console.log(layout);
-
-    // _.each(cy.nodes(), n => {
-    //   let originNode = n.data().node;
-    //   originNode.updatePosition({
-    //     x: n.position().x * 25 * 5 - 500,
-    //     y: n.position().y * 25 * 5 - 500
-    //   });
-    // });
-
-    // for (let i = 0; i < nodes.length; i++) {
-    //   const node = nodes[i];
-    //   const metadataPosition = node.metadata && node.metadata.position;
-    //   let fixedPos;
-    //   if (metadataPosition) {
-    //     const posX = metadataPosition.x;
-    //     const posY = metadataPosition.y;
-    //     if (typeof posX === 'number' && Number.isFinite(posX) && typeof posY === 'number' && Number.isFinite(posY)) {
-    //       fixedPos = { x: posX, y: posY };
-    //     }
-    //   }
-    //   let pos = fixedPos;
-    //   if (!fixedPos) {
-    //     pos = {
-    //       x: Math.cos(i * angleBetweenNodes) * hw,
-    //       y: Math.sin(i * angleBetweenNodes) * hh
-    //     };
-    //   }
-
-    //   console.log(node, " <-> ", pos);
-
-
-    //   node.updatePosition(pos);
-    // }
-    // layoutComplete();
   }
 }
 
