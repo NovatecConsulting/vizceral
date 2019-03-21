@@ -81,16 +81,16 @@ class ConnectionStatsView extends BaseView {
 
   updateNoticeIcon () {
     //   debugger;
-    const requestCount = _.defaultTo(this.object.volume.normal, -1) + _.defaultTo(this.object.volume.danger, 0);
+    const requestCount = Math.round(_.defaultTo(this.object.volume.normal, -1) + _.defaultTo(this.object.volume.danger, 0));
     const connectionTime = Math.floor(_.defaultTo(this.object.metadata.connectionTime, -1));
-    const errors = _.defaultTo(this.object.volume.danger, -1);
+    const errors = Math.round(_.defaultTo(this.object.volume.danger, -1));
     const textParts = [];
 
     if (connectionTime >= 0) {
       textParts.push(`${connectionTime} ms`);
     }
     if (requestCount >= 0) {
-      textParts.push(`${requestCount} Reqeusts`);
+      textParts.push(`${requestCount} Requests`);
     }
     if (errors >= 0) {
       textParts.push(`${errors} Errors`);
