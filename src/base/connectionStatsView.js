@@ -116,13 +116,15 @@ class ConnectionStatsView extends BaseView {
 
     context.clearRect(0, 0, this.noticeCanvas.width, this.noticeCanvas.height);
 
-    context.fillStyle = GlobalStyles.styles.colorBackgroundDark;
-    context.fillStyle = GlobalStyles.styles.colorTraffic.normal;
-    context.fillRect(0, 0, this.noticeCanvas.width, this.noticeCanvas.height);
+    if (statsText.length > 0) {
+      context.fillStyle = GlobalStyles.styles.colorBackgroundDark;
+      context.fillStyle = GlobalStyles.styles.colorTraffic.normal;
+      context.fillRect(0, 0, this.noticeCanvas.width, this.noticeCanvas.height);
 
-    context.textAlign = 'center';
-    context.fillStyle = GlobalStyles.styles.colorLabelText;
-    context.fillText(statsText, this.noticeCanvas.width / 2, this.noticeCanvas.height / 2);
+      context.textAlign = 'center';
+      context.fillStyle = GlobalStyles.styles.colorLabelText;
+      context.fillText(statsText, this.noticeCanvas.width / 2, this.noticeCanvas.height / 2);
+    }
 
     this.noticeTexture.needsUpdate = true;
   }
