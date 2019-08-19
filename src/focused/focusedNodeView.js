@@ -196,13 +196,13 @@ class FocusedNodeView extends NodeView {
       // Draw single center metric - only if no other exists
       if (!topData && !bottomData && centerData) {
         top = this.singleMetricFontSize / 2; // reset
-        textContext.fillStyle = GlobalStyles.styles.colorTraffic.normal;
+        textContext.fillStyle = GlobalStyles.styles.colorText;
         textContext.font = `${metricWeight} ${this.singleMetricFontSize}px 'Source Sans Pro', sans-serif`;
         textContext.fillText(centerData.value, this.textCanvas.width / 2, top);
 
         top += this.singleMetricFontSize / 2 + this.singleHeaderFontSize / 2;
 
-        textContext.fillStyle = GlobalStyles.styles.colorNormalDimmed;
+        textContext.fillStyle = GlobalStyles.styles.colorTextDisabled;
         textContext.font = `${headerWeight} ${this.singleHeaderFontSize}px 'Source Sans Pro', sans-serif`;
         textContext.fillText(centerData.text, this.textCanvas.width / 2, top);
       }
